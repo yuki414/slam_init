@@ -10,10 +10,12 @@ SLAM入門を参考
 
 '''
 # In[]:
+import os.path
 from enum import Enum
 from SLAM_launcher import SLAM_launcher
 # ここでエラーがでるが，pose2dなどを定義していないため
 # In[]:
+# あとで入力引数として書き換え
 class main():
     def __init__(self, argc, argv):
         # オプションを渡して起動したいときにもちいる
