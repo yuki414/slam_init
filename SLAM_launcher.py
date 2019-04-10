@@ -109,7 +109,7 @@ class SLAM_launcher():
         totalTime = t3
         totalTimeDraw = totalTimeDraw + (t2 - t1)
         totalTimeRead = totalTimeRead + (t3 - t2)
-
+ね
         print('---- SLAMlauncher: cnt = %f ends ----', cnt) # 原本では %1u
         '''
 
@@ -130,3 +130,42 @@ class SLAM_launcher():
 
     # ここまでがSLAMluncherのメイン部分
     # ここからランチャーでつかったstructや関数の定義
+    def mapByOdometry(self, scan):
+        pose = Pose2D
+        Pose2D.calRelativePose(scan.pose()) # スキャン取得時のオドメトリ位置
+        lps = scan.lps()
+        for j in range(lps.size()):
+            lp = lps[j]
+            pose.globalPoint(lp, glp)
+            glps,emplace_back(glp)
+
+        # // 点群地図pcmapにデータを格納
+        # pcmap->addPose(pose);
+        # pcmap->addPoints(glps);
+        # pcmap->makeGlobalMap();
+
+    def globalPoint(pi, po):
+        po.x = Rmat[0][0]*pi.x + Rmat[0][1]*pi.y + tx
+        po.y = Rmat[1][0]*pi.x + Rmat[1][1]*pi.y + ty
+
+
+    def showsScans(self):
+        mdrawer.initGnuplot()
+        mdrawer.setRange(6)
+        mdrawer.setAspectRatio(-0.9)
+
+        cnt = 0
+        if (startN > 0):
+            skipData(startN)
+
+        scan = Scan2D()
+        eof = srader.loadScan(cnt, scan)
+        while(not(eof)):
+            # Sleep(100)
+
+        mdrawer.drawScanGp(scan)
+
+        eof = sreader.loadScan(cnt, scan)
+        cnt = cnt + 1
+
+    sreader.closeScanFile()

@@ -66,7 +66,8 @@ class SensorDataReader:
             pose.calRmat()
 
             return True
-            
+
         else:
-            getline(inFile, line)
+            next(inFile)
+
             return False
