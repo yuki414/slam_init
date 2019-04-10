@@ -1,52 +1,46 @@
 '''
-SLAM launcherファイル
-C++で書かれていることの意味わからないレベルが結構高め
-ただしここがわかればmain→slamランチャという流れができて各モジュール作成に専念することが可能
+SLAMランチャー起動部分
+ファイル開いたり，処理をどこでするかなどの振り分けを行ってる
+各クラスファイルが何を実装してたかの対応が面倒
+各引数をinit部分で与えるか，メソッドのところで与えるのか
+initのところで与えられた場合，あるメソッドが他のメソッドに影響があるわけでその意図を求めてないくない？
+と思ったがself.hogeを定義して，他のメソッドでも使えるようにすると良さそう
+ただメイン関数とかランチャーの処理のメソッドのときに与えたりするので初期値はいらないかな
 '''
-
 # In[]:
-class SLAM_launcher():
+class SlamLauncher():
     # startNはmainから与えられる
     # アンダーバーから始まる変数はprivate変数とする
     # private変数はクラス外からアクセスすることはできない，すなわちクラス内で用いる関数のみにしか利用できないと考えれば良い？
-    def __init__(self, _startN, _odometryOnly):
-        self.startN = _startN  # int startN: 開始スキャン番号
-        self.odometryOnly = _odometryOnly  # bool odometryOnly
-        # int drawSkip: 描画間隔，main関数で渡されていないが，どこからもらうのか
+    def __init__(self):
+        # selfインスタンスをインスタンスとしていいのかわからん
+        # 適当なテストファイル作ってうまく行ったっぽいのでおｋ
+        self.lidarOffset = Pose2D()
+        self.sreader = SensorDataReader()  # ファイルからのセンサデータ読み込み
+        self.pcmap = PointCloudMap()  # 点群地図，*pcmapはポインタ型の宣言，pyでは不要?
+        self.sfront = SlamFrontEnd() # SLAMフロントエンド
+        self.mdrawer = MapDrawer()  # gnuplotによる描画のクラス
+        self.fcustom = FrameworkCustomizer()  # フレームワークの改造
 
-#   Pose2D lidarOffset # レーザスキャナとロボットの相対位置，別ファイルか？
-    lidarOffset = Pose2D()
-    sreader = SensorDataReader()  # ファイルからのセンサデータ読み込み
-    pcmap = PointCloudMap()  # 点群地図，*pcmapはポインタ型の宣言，pyでは不要?
-    sfront = SlamFrontEnd() # SLAMフロントエンド
-    mdrawer = MapDrawer()  # gnuplotによる描画のクラス
-    fcustom = FrameworkCustomizer()  # フレームワークの改造
+        '''
+        こいつらをインスタンスとして扱えばいいのかどうか・・・
+        Pose2D ipose;                    // オドメトリ地図構築の補助データ。初期位置の角度を0にする
+        Pose2D lidarOffset;              // レーザスキャナとロボットの相対位置
+
+        SensorDataReader sreader;        // ファイルからのセンサデータ読み込み
+        PointCloudMap *pcmap;            // 点群地図
+        SlamFrontEnd sfront;             // SLAMフロントエンド
+        MapDrawer mdrawer;               // gnuplotによる描画
+        FrameworkCustomizer fcustom;     // フレームワークの改造
+        '''
 # In[]:
-    '''
-        public:
-      SlamLauncher() : startN(0), drawSkip(10), odometryOnly(false), pcmap(nullptr) {
-      }
-      ~SlamLauncher() {
-      }
-    ///////////
-      void setStartN(int n) {
-        startN = n;
-      }
-      void setOdometryOnly(bool p) {
-        odometryOnly = p;
-      }
-    ///////////
-        ここでpublicなメンバ関数の宣言
-        void run();
-        void showScans();
-        void mapByOdometry(Scan2D *scan);
-        bool setFilename(char *filename);
-        void skipData(int num);
-        void customizeFramework();
-    };
-    '''
-# print('test!')
-# #endif
+    def setStartN(self, n):
+        self.startN = n
+        # startNはprivate変数でクラス内で使いたいのでself.startNとした
+
+    def setOdometryOnly(self, p):
+        self.odometryOnly = p # bool
+
     # 上ではprivateとpublicな変数と関数を宣言しただけであって，定義はしていない
     # C++では宣言した関数を
     # void SLAMlauncher::run()を例に(戻り型) (クラス名)::(関数名)のように定義する
@@ -54,30 +48,29 @@ class SLAM_launcher():
     # P66の34行目と同じような書き方
 # In[]:
     def run(self):
-        mdrawer.initGunuplot()
-        mdrawer.setAspectRatio(-0.9)
-        # using namespace std;     // C++標準ライブラリの名前空間を使う
-        # 上でこれがつかわれてる
+        self.mdrawer.initGunuplot()
+        self.mdrawer.setAspectRatio(-0.9)
 
-        # size_t cnt = 0;
-        # size_tは、オブジェクトのバイト数を表現できる程度に十分に大きい符号なし整数型
         cnt = 0  # 処理の論理時刻
+        # startNはmainにてsetStartN(n)として与えられる
         if self.startN > 0:
             skipData(self.startN)
+            # C++では同じクラス内であればメソッドがどこにあるか明示しなくてもいいらしい
+            # !!:pythonでもできるか確認
 
         totalTime, totalTimeDraw, totalTimeRead = 0, 0, 0  # double型
         scan = Scan2D() # scan2dはstrctなので注意
-        eof = sreader.loadScan(cnt, scan)  # bool型
+        eof = self.sreader.loadScan(cnt, scan)  # bool型
 #         boost::timer tim; 何この書き方．．．
 
-        while (not eof):
+        while not(eof):
             if self.odometryOnly:
                 if cnt == 0:
-                    ipose = scan.pose
-                    ipose.calRmat()
-                mapByOdometry(scan)  # ポインタのやつ
+                    self.ipose = scan.pose() # iposeを入れたけど，ここでscan.poseを代入しちゃう？
+                    self.ipose.calRmat()
+                mapByOdometry(scan)  # これもランチャー内のメソッド
             else:
-                sfront.process(scan)  # SLAMによる地図構築
+                self.sfront.process(scan)  # SLAMによる地図構築
 
             if (cnt & drawSkip == 0):
                 # *pcmapなので本来ポインタ型の宣言，内部でそれ用に対応する必要がある
