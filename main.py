@@ -1,13 +1,8 @@
 '''
 main関数作成
-C++のコードをpythonに落とし込んでいく
-SLAM入門を参考
 
-疑問：
-・int mainをクラスにしてよかったのか
-・return 1 の終わり方をexit()にした
-・classで書いてしまったため，処理の大部分をメソッドで書いてしまった
-
+・終了部分をsys.exit(1)に変更
+・SlamLauncherのimportあたりが手付かず
 '''
 # In[]:
 import sys
