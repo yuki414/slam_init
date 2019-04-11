@@ -6,6 +6,9 @@ SLAMランチャー起動部分
 initのところで与えられた場合，あるメソッドが他のメソッドに影響があるわけでその意図を求めてないくない？
 と思ったがself.hogeを定義して，他のメソッドでも使えるようにすると良さそう
 ただメイン関数とかランチャーの処理のメソッドのときに与えたりするので初期値はいらないかな
+ポインタの扱いの話題は避けられなさそう
+ひとまずポインタに該当する箇所はアンダーバーを入れて対応
+参考書の進捗ページでは処理時間のコードが内があってもなくてもどっちでもいいと思うのでつけておく
 '''
 # In[]:
 class SlamLauncher():
@@ -13,11 +16,15 @@ class SlamLauncher():
     # アンダーバーから始まる変数はprivate変数とする
     # private変数はクラス外からアクセスすることはできない，すなわちクラス内で用いる関数のみにしか利用できないと考えれば良い？
     def __init__(self):
+        self.startN = 0
+        self.drawSkip = 10
+        self.odometryOnly = False
+        self.pcmap = None
         # selfインスタンスをインスタンスとしていいのかわからん
         # 適当なテストファイル作ってうまく行ったっぽいのでおｋ
         self.lidarOffset = Pose2D()
         self.sreader = SensorDataReader()  # ファイルからのセンサデータ読み込み
-        self.pcmap = PointCloudMap()  # 点群地図，*pcmapはポインタ型の宣言，pyでは不要?
+        self._pcmap = PointCloudMap()  # 点群地図，*pcmapはポインタ型の宣言，pyでは不要?
         self.sfront = SlamFrontEnd() # SLAMフロントエンド
         self.mdrawer = MapDrawer()  # gnuplotによる描画のクラス
         self.fcustom = FrameworkCustomizer()  # フレームワークの改造
@@ -58,52 +65,57 @@ class SlamLauncher():
             # C++では同じクラス内であればメソッドがどこにあるか明示しなくてもいいらしい
             # !!:pythonでもできるか確認
 
-        totalTime, totalTimeDraw, totalTimeRead = 0, 0, 0  # double型
-        scan = Scan2D() # scan2dはstrctなので注意
+        totalTime, totalTimeDraw, totalTimeRead = 0, 0, 0  # 処理時間みるため，初期化
+        scan = Scan2D() # !!:scan2dはstrctなので注意
         eof = self.sreader.loadScan(cnt, scan)  # bool型
-#         boost::timer tim; 何この書き方．．．
-
+        # 処理時間の計測
+        time_origin = time.time() # 開始処理時刻(年月日~という感じで得る)
         while not(eof):
-            if self.odometryOnly:
-                if cnt == 0:
+            if (self.odometryOnly):
+                # オドメトリによる地図構築
+                if (cnt == 0):
                     self.ipose = scan.pose() # iposeを入れたけど，ここでscan.poseを代入しちゃう？
                     self.ipose.calRmat()
                 mapByOdometry(scan)  # これもランチャー内のメソッド
             else:
-                self.sfront.process(scan)  # SLAMによる地図構築
+                # SLAMによる地図構築
+                self.sfront.process(scan)
 
-            if (cnt & drawSkip == 0):
+            t1 = time.time() - time_origin
+
+            if (cnt % drawSkip == 0):
                 # *pcmapなので本来ポインタ型の宣言，内部でそれ用に対応する必要がある
-                mdrawer.drawMapGp(pcmap)
+                self.mdrawer.drawMapGp(self._pcmap)
+                t2 = time.time() - time_origin
 
             cnt = cnt + 1  # ++cnt:wihle文中では前置と後置のインクリメント差は特にない
-            eof = sreader.loadScan(cnt, scan)  # 次のスキャンを読み込む
+            eof = sef.sreader.loadScan(cnt, scan)  # 次のスキャンを読み込む
 
-        sreader.closeScanFile()
-        # 終了時刻あとのテク，今は意味がわかっていないため放置
-        # while(true):
-        # sleep(1000)
+            t3 = time.time() - time_origin
+            totalTime = t3 # 全体の処理時間 これだと毎回t3消えない？
+            totalTimeDraw = totalTimeDraw + (t2 - t1) # 描画時間の合計
+            totalTimeRead = totalTimeRead + (t3 - t2) # ロード時間の合計
+
+            print('---- SlamLauncher: cnt={} ends'.format(cnt))
+        self.sreader.closeScanFile()
+
+        print('Elapsed time: mapping={0}, drawing={1}, reading={2}'.format(\
+        (totalTime-totalTimeDraw-totalTimeRead), totalTimeDraw, totalTimeRead))
+        print('SlamLauncher finished.')
 
         '''
-        gitに上がっているものと教科書が違うため，違う部分をここに記載
-        おそらくプログラムの進捗具合によって変化
+        描画画面を残しておくための処理
+        C++特有のものじゃない？とりあえずいらない        '''
 
-        t1 = 100*tim.elapsed()
+        '''
 
-        if (cnt%drawSkip == 0):
-            mdrawer.drawMapGp(pcmap)
-
-        t2 = 1000*tim.elapsed()
-
-        cnt = cnt + 1
-        eof = sreader.loadScan(cnt, scan)
-
-        t3 = 1000*tim.elapsed()
-        totalTime = t3
-        totalTimeDraw = totalTimeDraw + (t2 - t1)
-        totalTimeRead = totalTimeRead + (t3 - t2)
-ね
-        print('---- SLAMlauncher: cnt = %f ends ----', cnt) # 原本では %1u
+        while(true) {
+        #ifdef _WIN32
+            Sleep(1000);                            // WindowsではSleep
+        #elif __linux__
+            usleep(1000000);                        // Linuxではusleep
+        #endif
+          }
         '''
 
         sreader.closeScanFile()

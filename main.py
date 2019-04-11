@@ -5,9 +5,12 @@ main関数作成
 ・SlamLauncherのimportあたりが手付かず
 '''
 # In[]:
+# モジュールインポート
 import sys
 import os.path
 from enum import Enum
+import time
+# クラスをもってくる
 from SLAM_launcher import SLAM_launcher
 # ここでエラーがでるが，pose2dなどを定義していないため
 
