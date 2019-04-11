@@ -7,7 +7,9 @@ main関数作成
 # In[]:
 # モジュールインポート
 import sys
+import numpy as np
 import os.path
+import math # rad2deg:.degrees(), deg2rad:.radians()
 from enum import Enum
 import time
 # クラスをもってくる
