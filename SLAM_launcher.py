@@ -22,6 +22,7 @@ class SlamLauncher():
         self.pcmap = None
         # selfインスタンスをインスタンスとしていいのかわからん
         # 適当なテストファイル作ってうまく行ったっぽいのでおｋ
+        self.ipose = Pose2D()
         self.lidarOffset = Pose2D()
         self.sreader = SensorDataReader()  # ファイルからのセンサデータ読み込み
         self._pcmap = PointCloudMap()  # 点群地図，*pcmapはポインタ型の宣言，pyでは不要?
@@ -126,29 +127,43 @@ class SlamLauncher():
 
     # 開始からnum個のスキャンまで読み飛ばす
     def skipData(self, num):
-        scan = Scan2D() # この書き方だとクラスのような書き方がベストか？
-        eof = sreader.loadScan(0, scan)
+        scan = Scan2D()
+        eof = self.sreader.loadScan(0, scan)
 #         for (int i=0; !eof && i<num; i++) という文だが，pythonではbreakで抜けなければならない
+        for i in range(num):
+            if not(eof):
+                break
+            eof = self.sreader.loadScan(0, scan)
+        # こっちのほうがスマート
+        # while (not(eof) and (i < num)):
+        #     eof = sreader.loadScan(0, scan)
 
-        while (not eof and i < num):
-            eof = sreader.loadScan(0, scan)
-
-    # ここまでがSLAMluncherのメイン部分
-    # ここからランチャーでつかったstructや関数の定義
-    def mapByOdometry(self, scan):
-        pose = Pose2D
-        Pose2D.calRelativePose(scan.pose()) # スキャン取得時のオドメトリ位置
-        lps = scan.lps()
-        for j in range(lps.size()):
-            lp = lps[j]
+    '''
+    # 進捗的にはここがまだない
+    def mapByOdometry(self, _scan):
+        pose = Pose2D()
+        # Pose2D::calRelativePose(scan->pose, ipose, pose);
+        # C++では->（アロー演算子）によってポインタ変数のメンバ関数が呼び出される
+        Pose2D.calRelativePose(scan.pose, self.ipose, pose) #!!:ここかなり怪しい
+        &lps = scan.lps()
+        for j in range(len(lps)):
+            # LPoint2D &lp = lps[j];
+            # LPoint2D glp;
+            &lp = lps[j]
+            glp = LPoint2D()
             pose.globalPoint(lp, glp)
-            glps,emplace_back(glp)
+            glps.emplace_back(glp)
 
         # // 点群地図pcmapにデータを格納
         # pcmap->addPose(pose);
         # pcmap->addPoints(glps);
         # pcmap->makeGlobalMap();
+        pcmap.addPose(pose)
+        pcmap.addPoints(glps)
+        pcmap.makeGlobalMap()
 
+        print('Odom pose: tx={0}, ty={1}, th={2}'.format(pose.tx, pose.ty, pose.th))
+    '''
     def globalPoint(pi, po):
         po.x = Rmat[0][0]*pi.x + Rmat[0][1]*pi.y + tx
         po.y = Rmat[1][0]*pi.x + Rmat[1][1]*pi.y + ty
@@ -160,17 +175,24 @@ class SlamLauncher():
         mdrawer.setAspectRatio(-0.9)
 
         cnt = 0
-        if (startN > 0):
-            skipData(startN)
+        if (self.startN > 0):
+            skipData(self.startN)
 
         scan = Scan2D()
-        eof = srader.loadScan(cnt, scan)
-        while(not(eof)):
+        eof = self.srader.loadScan(cnt, scan)
+        # while(not(eof)):
             # Sleep(100)
 
-        mdrawer.drawScanGp(scan)
+        self.mdrawer.drawScanGp(scan)
 
+        print('---- scan num={} ----'.format(cnt))
         eof = sreader.loadScan(cnt, scan)
         cnt = cnt + 1
 
     sreader.closeScanFile()
+    print('SlamLauncher finished.')
+
+    def setFilename(self, _filename):
+        flag = self.sreader.openScanFile(filename)
+
+        return flag
