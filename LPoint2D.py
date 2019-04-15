@@ -1,5 +1,6 @@
 # In[]:
 '''
+struct LPoint2D
 LPoint2Dのクラス作成
 '''
 # !!:クラスにするか関数にするか

@@ -1,4 +1,5 @@
 '''
+struct Scan2D
 Scan2Dのクラス作成
 C++ではstructを別個でつくらないといけない
 ここではいくつかの構造体をpythonのclassによって定義する．
