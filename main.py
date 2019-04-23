@@ -13,11 +13,10 @@ import math # rad2deg:.degrees(), deg2rad:.radians()
 from enum import Enum
 import time
 # クラスをもってくる
-from SLAM_launcher import SLAM_launcher
+import SLAM_launcher # SLAM_launcher.pyからクラスをimport
 # ここでエラーがでるが，pose2dなどを定義していないため
 
 # In[]:
-# あとで入力引数として書き換えた
 def main():
     # オプションを渡して起動したいときにもちいる
     # argcはオプションの個数(int)，argvはオプションを格納する(char)
@@ -28,22 +27,22 @@ def main():
     odometryOnly = False  # オドメトリのみによる地図構築か
     startN = 0
     # filenameはstr型
-    print('hello')
     if (argc < 2):
         print('Error: too few arguments.')
-        sys.exit(1)
+        sys.exit(1) # 実行画面にエラー1とでるはず
 
-    # コマンド引数の処理??
+    # コマンド引数の処理
     idx = 1
     if (argv[1][0] == '-'):
-        for i in range(30):
+        lim_of_argv = len(argv[1])
+        for i in range(1,lim_of_argv):
             # 原本では終了条件が指定されていない，breakで抜ける
             # 無限ループは少し怖いので適当にうちきり，あとで治す
             option = argv[1][i]
-            # 存在しない要素を参照しようとするとエラーがでるのでは？
-            if (option == None):
-                break
-            elif (option == 's'):
+            # argv[1]の最後まで行ったらbreak，けどそもそも長さがわかればいらない
+            # if (option == None):
+            #     break
+            if (option == 's'):
                 scanCheck = True
             elif (option == 'o'):
                 odometryOnly = True
@@ -60,18 +59,20 @@ def main():
     elif (argc >= idx + 2):
         print('Error: invalid arguments.')
         sys.exit(1)
-    print('SlamLauncher: startN=%d, scanCheck=%d, odometryOnly=%d' % (startN, scanCheck, odometryOnly))
+    print('SlamLauncher: startN={0}, scanCheck={1}, odometryOnly={2}'.format(startN, scanCheck, odometryOnly))
     print('filename={}'.format(filename))
 # In[]:
+    # SLAM_launcherからSlamLauncherクラス
     sl = SlamLauncher()
-    # sl = SLAMLauncher(_startN, _odometryOnly) # __init__のための引数を入れる場合こっち
+    # 初期引数は自身だけであるため引数なしでおｋ
 
     # filenameを渡し，中でfilepathがあるか確認する
     # 存在する場合trueを返し，しない場合エラー表示とfalseを返す
     flag = sl.setFilename(filename)
+    # flag=False:でファイルパスなし
     if not(flag):
-        sys.exit()
-
+        sys.exit(1)
+    # 引数startNをslクラスに与えているだけ
     sl.setStartN(startN)
 
     # 処理本体
@@ -79,7 +80,7 @@ def main():
         sl.showScans()
     else:
         sl.setOdometryOnly(odometryOnly)
-        sl.customizeFramework()
+        # sl.customizeFramework() # まだない
         sl.run()
 
     return 0  # 問題なくおわったときのCの処理だけど
