@@ -11,16 +11,22 @@ initのところで与えられた場合，あるメソッドが他のメソッ�
 参考書の進捗ページでは処理時間のコードが内があってもなくてもどっちでもいいと思うのでつけておく
 '''
 # In[]:
+# クラスimport
+import SensorDataReader
+import Pose2D
+import Scan2D
+import MapDrawer
+# In[]:
 class SlamLauncher():
-    # startNはmainから与えられる
     # アンダーバーから始まる変数はprivate変数とする
+    # pythonにおけるprivate変数の扱いが少し特殊かもペンディング
     # private変数はクラス外からアクセスすることはできない，すなわちクラス内で用いる関数のみにしか利用できないと考えれば良い？
     def __init__(self):
         self.startN = 0
         self.drawSkip = 10
         self.odometryOnly = False
         self.pcmap = None
-        # selfインスタンスをインスタンスとしていいのかわからん
+        # selfインスタンスをインスタンスとして定義していいのかわからん
         # 適当なテストファイル作ってうまく行ったっぽいのでおｋ
         self.ipose = Pose2D()
         self.lidarOffset = Pose2D()
@@ -62,9 +68,9 @@ class SlamLauncher():
         cnt = 0  # 処理の論理時刻
         # startNはmainにてsetStartN(n)として与えられる
         if self.startN > 0:
-            skipData(self.startN)
+            self.skipData(self.startN)
             # C++では同じクラス内であればメソッドがどこにあるか明示しなくてもいいらしい
-            # !!:pythonでもできるか確認
+            # 確認：self.hogemehodとすればいいらしい
 
         totalTime, totalTimeDraw, totalTimeRead = 0, 0, 0  # 処理時間みるため，初期化
         scan = Scan2D() # !!:scan2dはstrctなので注意
@@ -176,7 +182,7 @@ class SlamLauncher():
 
         cnt = 0
         if (self.startN > 0):
-            skipData(self.startN)
+            self.skipData(self.startN)
 
         scan = Scan2D()
         eof = self.srader.loadScan(cnt, scan)
