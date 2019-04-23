@@ -17,7 +17,7 @@ class Pose2D():
         self.tx = tx
         self.ty = ty
         self.th = th
-        Pose2D.calRmat(self)
+        self.calRmat(self)
 
     def init_4arg(self, mat, tx, ty, th):
         self.Rmat = mat # ただしmatは2x2行列
@@ -27,13 +27,13 @@ class Pose2D():
 
     def reset(self):
         self.tx, self.ty, self.th = 0, 0, 0
-        Pose2D.calRmat()
+        self.calRmat()
 
     def setVal(self, x, y, a):
         self.tx = x
         self.ty = y
         self.th = a
-        Pose2D.calRmat()
+        self.calRmat()
 
     def calRmat(self):
         a = math.radians(self.th)
