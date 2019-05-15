@@ -2,60 +2,67 @@
 マップ描画のところ
 C++のgpみたいなのをつかわないでかけないのか？
 '''
-
+# まだ変えてない
+# このままだと初期値に大量の引数を入れることになるので変更
 class MapDrawer:
-    def __init__(self, xmin, xmax, ymin, ymax, aspectR):
-        self.xmin = xmin
-        self.xmax = xmax
-        self.ymin = ymin
-        self.ymax = ymax
-        self.aspectR = aspectR
+    def __init__(self):
+        self.gp = None # nullptr
+        self.xmin = -10
+        self.xmax = 10
+        self.ymin = -10
+        self.ymax = 10
+        self.aspectR = -1.0
+
+    # def initGunuplot():
+        # gp = popen("gnuplot", "w");
+        # 別画面で開くとかなんとか，C特有か？
 
     def setAspectRatio(self, a):
         self.aspectR = a
-        print("set size ratio %f" % self.aspectR)
+        print('set size ratio {}'.format(self.aspectR))
 
     def setRange(self, R):
         self.xmin, self.ymin = -R, -R
         self.xmax, self.ymax = R, R
-        print("set xrange [%f:%f]" % (self.xmin, self.xmax))
-        print("set yrange [%f:%f]" % (self.ymin, self.ymax))
+        self.prin()
 
     # pyではオーバーロードが不可能なので名前を変える
-    def setRange_rect(self, xR, yR):
+    def setRange_double(self, xR, yR):
         self.xmin = -xR
         self.xmax = xR
         self.ymin = -yR
         self.ymax = yR
-        print("set xrange [%f:%f]" % (self.xmin, self.xmax))
-        print("set yrange [%f:%f]" % (self.ymin, self.ymax))
+        self.prin()
 
-    def setRange_any(self, xm, xM, ym, yM):
+    def setRange_quad(self, xm, xM, ym, yM):
         self.xmin = xm
         self.xmax = xM
         self.ymin = ym
         self.ymax = yM
-        print("set xrange [%f:%f]" % (self.xmin, self.xmax))
-        print("set yrange [%f:%f]" % (self.ymin, self.ymax))
+        self.prin()
 
-    def drawMapGp(pcmap):
-        lps = pcmap.globalMap()
-        poses = pcmap.poses()
-        drawGp(lps, poses)
+    def prin(self):
+        print('set xrange [{}:{}]'.format(self.xmin, self.xmax))
+        print('set yrange [{}:{}]'.format(self.ymin, self.ymax))
 
-    def drawScanGp(scan):
+    # pcmap = PointCloudMap()
+    def drawMapGp(self, _pcmap):
+        self._lps = _pcmap.globalMap()
+        self._poses = _pcmap.poses()
+        self.drawGp(self._lps, self._poses)
+
+    def drawScanGp(self, _scan):
         poses = Pose2D()
         pose = Pose2D()
         poses.emplace_back(pose)
-        drawGp(scan.lps, poses)
+        self.drawGp(scan.lps(), poses)
 
-    def drawTrajectoryGp(poses):
+    def drawTrajectoryGp(_poses):
         lps = LPoint2D()
-        drawGp(lps, poses)
+        drawGp(lps, _poses)
 
-    def drawGp(lps, poses, flus):
-        print("drawGp: lps.size={}".format(len(lps))
-
+    def drawGp(self, _lps, _poses, flush):
+        print('drawGp: size of lps = {}'.format(len(_lps)))
           # // gnuplot設定
           # fprintf(gp, "set multiplot\n");
           # //  fprintf(gp, "plot '-' w p pt 7 ps 0.1, '-' with vector\n");
@@ -63,14 +70,16 @@ class MapDrawer:
         step1 = 1
         # 描画の書き方
         # range(start, stop, step)
-        # for i in range(0, len(lps), step1):
+        for i in range(0, len(_lps), step1):
+            self._lp = _lps[i]
+            print('{} {}'.format(lp.x, lp.y))
 
         step2 = 10
-        for i in range(0, len(lps), step2):
-            cx = pose.tx
-            cy = pose.ty
-            cs = pose.Rmat[0][0]
-            sn = pose.Rmat[1][0]
+        for i in range(0, len(_poses), step2):
+            cx = _pose.tx
+            cy = _pose.ty
+            cs = _pose.Rmat[0][0]
+            sn = _pose.Rmat[1][0]
 
             dd = 0.4
             x1 = cs*dd
@@ -78,8 +87,8 @@ class MapDrawer:
             x2 = -sn*dd
             y2 = cs*dd
 
-            print("{} {} {} {}" .format(cx, cy, x1, y1))
-            print("{} {} {} {}" .format(cx, cy, x2, y2))
+            print('{} {} {} {}'.format(cx, cy, x1, y1))
+            print('{} {} {} {}'.format(cx, cy, x2, y2))
 
         # if (flush):
             #

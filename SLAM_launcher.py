@@ -12,10 +12,12 @@ initのところで与えられた場合，あるメソッドが他のメソッ�
 '''
 # In[]:
 # クラスimport
-import SensorDataReader
-import Pose2D
-import Scan2D
-import MapDrawer
+from SensorDataReader import SensorDataReader
+from Pose2D import Pose2D
+from Scan2D import Scan2D
+from LPoint2D import LPoint2D
+from MapDrawer import MapDrawer
+import time
 # In[]:
 class SlamLauncher():
     # アンダーバーから始まる変数はprivate変数とする
@@ -32,9 +34,9 @@ class SlamLauncher():
         self.lidarOffset = Pose2D()
         self.sreader = SensorDataReader()  # ファイルからのセンサデータ読み込み
         self._pcmap = PointCloudMap()  # 点群地図，*pcmapはポインタ型の宣言，pyでは不要?
-        self.sfront = SlamFrontEnd() # SLAMフロントエンド
+        # self.sfront = SlamFrontEnd() # SLAMフロントエンド
         self.mdrawer = MapDrawer()  # gnuplotによる描画のクラス
-        self.fcustom = FrameworkCustomizer()  # フレームワークの改造
+        # self.fcustom = FrameworkCustomizer()  # フレームワークの改造
 
         '''
         こいつらをインスタンスとして扱えばいいのかどうか・・・
@@ -62,7 +64,7 @@ class SlamLauncher():
     # P66の34行目と同じような書き方
 # In[]:
     def run(self):
-        self.mdrawer.initGunuplot()
+        # self.mdrawer.initGunuplot()
         self.mdrawer.setAspectRatio(-0.9)
 
         cnt = 0  # 処理の論理時刻
@@ -81,12 +83,16 @@ class SlamLauncher():
             if (self.odometryOnly):
                 # オドメトリによる地図構築
                 if (cnt == 0):
-                    self.ipose = scan.pose() # iposeを入れたけど，ここでscan.poseを代入しちゃう？
+                    self.ipose = scan.pose
+                    # iposeを入れたけど，ここでscan.poseを代入しちゃう？
+                    # C++ではpose2d iposeとして宣言してから同じ型を代入するようだ
+                    # 一行なら Pose2D ipose = scan.poseとなる
                     self.ipose.calRmat()
-                mapByOdometry(scan)  # これもランチャー内のメソッド
+                self.mapByOdometry(scan)  # これもランチャー内のメソッド
             else:
                 # SLAMによる地図構築
-                self.sfront.process(scan)
+                # self.sfront.process(scan)
+                print('Now not found!')
 
             t1 = time.time() - time_origin
 
@@ -125,7 +131,7 @@ class SlamLauncher():
           }
         '''
 
-        sreader.closeScanFile()
+        self.sreader.closeScanFile()
 
         print("Elapsed time: mapping=%g, drawing=%g, reading=%g",
               (totalTime - totalTimeDraw - totalTimeRead), totalTimeDraw, totalTimeRead)
@@ -144,32 +150,36 @@ class SlamLauncher():
         # while (not(eof) and (i < num)):
         #     eof = sreader.loadScan(0, scan)
 
-    '''
+
     # 進捗的にはここがまだない
     def mapByOdometry(self, _scan):
         pose = Pose2D()
         # Pose2D::calRelativePose(scan->pose, ipose, pose);
         # C++では->（アロー演算子）によってポインタ変数のメンバ関数が呼び出される
-        Pose2D.calRelativePose(scan.pose, self.ipose, pose) #!!:ここかなり怪しい
-        &lps = scan.lps()
-        for j in range(len(lps)):
+        Pose2D.calRelativePose(_scan.pose, self.ipose, pose) #!!:ここかなり怪しい
+        _lps = _scan.lps
+        glps = []
+        for j in range(len(_lps)):
             # LPoint2D &lp = lps[j];
-            # LPoint2D glp;
-            &lp = lps[j]
+            _lp = _lps[j]
             glp = LPoint2D()
-            pose.globalPoint(lp, glp)
-            glps.emplace_back(glp)
+            # LPoint2D glp;
+            _lp = _lps[j]
+            glp = LPoint2D()
+            # オーバーロードができないのでglobalpoint_double(pi,pio)
+            pose.globalPoint_double(_lp, glp)
+            glps.append(glp)
 
         # // 点群地図pcmapにデータを格納
         # pcmap->addPose(pose);
         # pcmap->addPoints(glps);
         # pcmap->makeGlobalMap();
-        pcmap.addPose(pose)
-        pcmap.addPoints(glps)
-        pcmap.makeGlobalMap()
+        self.pcmap.addPose(pose)
+        self.pcmap.addPoints(glps)
+        self.pcmap.makeGlobalMap()
 
         print('Odom pose: tx={0}, ty={1}, th={2}'.format(pose.tx, pose.ty, pose.th))
-    '''
+
     def globalPoint(pi, po):
         po.x = Rmat[0][0]*pi.x + Rmat[0][1]*pi.y + tx
         po.y = Rmat[1][0]*pi.x + Rmat[1][1]*pi.y + ty
@@ -186,19 +196,46 @@ class SlamLauncher():
 
         scan = Scan2D()
         eof = self.srader.loadScan(cnt, scan)
-        # while(not(eof)):
+        while(not(eof)):
             # Sleep(100)
 
-        self.mdrawer.drawScanGp(scan)
+            self.mdrawer.drawScanGp(scan)
 
-        print('---- scan num={} ----'.format(cnt))
-        eof = sreader.loadScan(cnt, scan)
-        cnt = cnt + 1
+            print('---- scan num={} ----'.format(cnt))
+            eof = self.sreader.loadScan(cnt, scan)
+            cnt = cnt + 1
 
-    sreader.closeScanFile()
-    print('SlamLauncher finished.')
+        sreader.closeScanFile()
+        print('SlamLauncher finished.')
 
     def setFilename(self, _filename):
-        flag = self.sreader.openScanFile(filename)
+        flag = self.sreader.openScanFile(_filename)
 
         return flag
+# In[]:
+class PointCloudMap:
+    def __init__(self):
+        self.MAX_POINT_NUM = 10**6
+        self.poses = Pose2D()
+        self.lastPose = Pose2D()
+        self.lastScan = Scan2D()
+
+        self.globalMap = LPoint2D()
+        self.localMap = LPoint2D()
+
+        self.nthre = 1
+        # self.globalMap.reserve(self.MAX_POINT_NUM) # 容量確保らしい
+
+
+    def setNthre(self, n):
+        self.nthre = n
+
+    def setLastPose(self, _p):
+        self.lastPose = _p
+
+    def setLastScan(self, _s):
+        self.lastScan = _s
+
+    def addPose(_p):
+        return 0
+    # def

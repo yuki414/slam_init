@@ -4,6 +4,8 @@ struct LPoint2D
 LPoint2Dのクラス作成
 '''
 # !!:クラスにするか関数にするか
+from enum import Enum
+import math
 class ptype:
     def __init__(self, str):
         if str == 'UNKNOWN':
